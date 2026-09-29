@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Workout History & Plan Evolution — FitBuddy{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 920px;">
+  <div class="page-header" style="text-align: center;">
+    <div class="section-tag">Evolution Timeline</div>
+    <h1>Workout <span class="gradient-text">Plan History</span></h1>
+    <p style="margin: 0 auto;">
+      Review your previous routines, inspect how feedback refined your training volume, and switch between archived plan versions.
+    </p>
+  </div>
+
+  {% if not user %}
+    <div class="card" style="text-align:center; padding: 4rem 1.5rem;">
+      <h2 style="font-size:2rem; margin-bottom:0.8rem;">Profile Required</h2>
+      <p style="color:var(--text-muted); margin-bottom:2rem;">
+        Create or select a fitness profile to track your workout history.
+      </p>
+      <a href="/profile" class="btn btn-primary btn-lg">Set Up Profile &rarr;</a>
+    </div>
+
+  {% elif not plans %}
+    <div class="card" style="text-align:center; padding: 4rem 1.5rem;">
+      <h2 style="font-size:2rem; margin-bottom:0.8rem;">No Workout Plans Yet</h2>
+      <p style="color:var(--text-muted); margin-bottom:2rem;">
+        Generate your first 7-day plan to initiate your training history.
+      </p>
+      <a href="/workout" class="btn btn-primary btn-lg">Generate First Plan &rarr;</a>
+    </div>
+
+  {% else %}
+    {% for plan in plans %}
+      <div class="card" style="margin-bottom: 2rem;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid var(--border-glass);">
+          <div>
+            <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.3rem;">
+              <span class="plan-version-badge">Version {{ plan.version }} Active</span>
+              <span style="font-size:0.85rem; color:var(--text-muted);">
+                Program ID #{{ plan.id }} &bull; Created {{ plan.created_at.strftime('%B %d, %Y') }}
+              </span>
+            </div>
+            <h3 style="font-size:1.35rem;">{{ user.fitness_goal }} Program</h3>
+          </div>
+          <div style="display:flex; gap:0.6rem;">
+            <a href="/workout?plan_id={{ plan.id }}" class="btn btn-primary btn-sm">
+              Open Active Plan
+            </a>
+            <a href="/feedback?plan_id={{ plan.id }}" class="btn btn-secondary btn-sm">
+              Submit Feedback
+            </a>
+          </div>
+        </div>
+
+        <!-- Versions Timeline -->
+        <h4 style="font-size:1.05rem; color:var(--text-muted); margin-bottom:1.2rem;">Archived Version History:</h4>
+        <div class="timeline">
+          {% for ver in plan.versions %}
+            <div class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div class="card" style="padding:1.2rem; background:var(--bg-card-secondary);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; flex-wrap:wrap; gap:0.5rem;">
+                  <div style="display:flex; align-items:center; gap:0.6rem;">
+                    <span class="badge badge-primary">Version {{ ver.version }}</span>
+                    <span style="font-size:0.85rem; color:var(--text-muted);">
+                      {{ ver.created_at.strftime('%b %d, %Y at %H:%M') }}
+                    </span>
+                  </div>
+                  <a href="/workout?plan_id={{ plan.id }}&version_id={{ ver.id }}" class="btn btn-secondary btn-sm">
+                    Inspect Version {{ ver.version }}
+                  </a>
+                </div>
+                <p style="font-size:0.88rem; color:#d1d5db;">
+                  <strong>Reason / Adaptation:</strong> {{ ver.reason or "AI generation" }}
+                </p>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Nutrition & Recovery Guidance — FitBuddy{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  {% if not user %}
+    <!-- No User State -->
+    <div class="card" style="text-align:center; padding: 4rem 1.5rem; max-width:680px; margin: 2rem auto;">
+      <h2 style="font-size:2rem; margin-bottom:0.8rem;">Profile Required</h2>
+      <p style="color:var(--text-muted); margin-bottom:2rem;">
+        Please create your fitness profile so FitBuddy can calculate your personalized caloric targets, macronutrients, and hydration requirements.
+      </p>
+      <a href="/profile" class="btn btn-primary btn-lg">Set Up Profile &rarr;</a>
+    </div>
+
+  {% elif not nutrition_guide %}
+    <!-- User Exists But Has Not Generated Nutrition Guide Yet -->
+    <div class="card" style="text-align:center; padding: 4rem 1.5rem; max-width:720px; margin: 2rem auto;">
+      <div class="section-tag">{{ user.dietary_preference }} Strategy</div>
+      <h2 style="font-size:2.2rem; margin-bottom:0.8rem;">Generate Nutrition & Recovery Strategy</h2>
+      <p style="color:var(--text-muted); margin-bottom:1.5rem;">
+        FitBuddy will analyze your weight ({{ user.weight }} kg), age ({{ user.age }}), training intensity ({{ user.workout_intensity }}), and goal ({{ user.fitness_goal }}) to build your nutrition and recovery protocol.
+      </p>
+      <form action="/nutrition/generate" method="POST" class="ai-trigger-form">
+        <input type="hidden" name="user_id" value="{{ user.id }}">
+        <button type="submit" class="btn btn-cyan btn-lg" id="btn-generate-nutrition-first">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          Generate Nutrition & Recovery with Gemini Flash
+        </button>
+      </form>
+    </div>
+
+  {% else %}
+    <!-- Header with regenerate CTA -->
+    <div class="workout-controls" style="margin-bottom: 2rem;">
+      <div>
+        <span class="section-tag" style="margin-bottom:0.2rem;">{{ user.dietary_preference }} &bull; {{ user.fitness_goal }}</span>
+        <h1 style="font-size:1.8rem; margin:0.2rem 0;">Nutritional & Recovery Strategy</h1>
+        <p style="color:var(--text-muted); font-size:0.88rem; max-width:650px;">
+          {{ guide_data.summary }}
+        </p>
+      </div>
+
+      <div>
+        <form action="/nutrition/generate" method="POST" class="ai-trigger-form" style="display:inline;">
+          <input type="hidden" name="user_id" value="{{ user.id }}">
+          <button type="submit" class="btn btn-cyan btn-sm" id="btn-refresh-nutrition">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 4v6h-6"></path>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            Refresh Guidance
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Macronutrient & Calorie Breakdown Grid -->
+    <div class="nutrition-macros-grid">
+      <!-- Calories -->
+      <div class="macro-card protein">
+        <span class="section-tag" style="font-size:0.72rem;">Caloric Baseline</span>
+        <div class="macro-value" style="font-size:1.45rem;">{{ guide_data.daily_calories_estimate }}</div>
+        <p style="font-size:0.82rem; color:var(--text-muted);">Calculated for metabolic alignment</p>
+      </div>
+
+      <!-- Protein -->
+      <div class="macro-card protein">
+        <span class="section-tag" style="font-size:0.72rem;">Daily Protein</span>
+        <div class="macro-value">{{ guide_data.macronutrients.protein }}</div>
+        <p style="font-size:0.82rem; color:var(--text-muted);">Satiety & lean tissue recovery</p>
+      </div>
+
+      <!-- Carbs & Fats -->
+      <div class="macro-card carbs">
+        <span class="section-tag" style="font-size:0.72rem; color:var(--secondary); background:rgba(6, 182, 212, 0.12); border-color:rgba(6, 182, 212, 0.25);">Carbs & Fats</span>
+        <div class="macro-value" style="font-size:1.1rem; line-height:1.4; color:var(--secondary); font-weight:700;">
+          {{ guide_data.macronutrients.carbohydrates }}<br>
+          <span style="font-size:0.95rem; color:var(--accent-purple);">{{ guide_data.macronutrients.fats }}</span>
+        </div>
+        <p style="font-size:0.82rem; color:var(--text-muted);">Energy & hormonal balance</p>
+      </div>
+    </div>
+
+    <!-- 4-Card Detailed Nutrition & Recovery Grid -->
+    <div class="nutrition-details-grid">
+
+      <!-- 1. Meal Timing -->
+      <div class="nutrition-section-card">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Meal Timing & Workout Windows
+        </h3>
+        <ul class="nutrition-bullet-list">
+          {% for timing in guide_data.meal_timing %}
+            <li>
+              <span class="bullet-icon">&#10003;</span>
+              <span>{{ timing }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- 2. Recommended Foods -->
+      <div class="nutrition-section-card">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+          Recommended Nutrient-Dense Foods
+        </h3>
+        <ul class="nutrition-bullet-list">
+          {% for food in guide_data.recommended_foods %}
+            <li>
+              <span class="bullet-icon" style="color:var(--secondary);">&#9670;</span>
+              <span>{{ food }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- 3. Hydration Guidelines -->
+      <div class="nutrition-section-card">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+          </svg>
+          Hydration & Electrolytes
+        </h3>
+        <p style="font-size:0.95rem; color:#e5e7eb; line-height:1.6; margin-bottom:1rem;">
+          {{ guide_data.hydration_guidelines }}
+        </p>
+        <div style="background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.2); border-radius:var(--radius-sm); padding:0.6rem 0.8rem; font-size:0.82rem; color:#bae6fd;">
+          💡 <em>Rule of thumb: Drink 500ml upon waking and 500ml within 60 minutes of training.</em>
+        </div>
+      </div>
+
+      <!-- 4. Sleep & Recovery Protocol -->
+      <div class="nutrition-section-card">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          Sleep & Muscular Recovery
+        </h3>
+        <ul class="nutrition-bullet-list">
+          {% for tip in guide_data.sleep_optimization %}
+            <li>
+              <span class="bullet-icon" style="color:var(--accent-purple);">&#9790;</span>
+              <span>{{ tip }}</span>
+            </li>
+          {% endfor %}
+          {% for proto in guide_data.recovery_protocol %}
+            <li>
+              <span class="bullet-icon" style="color:var(--accent-purple);">&#9881;</span>
+              <span>{{ proto }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Foods to Moderate -->
+    {% if guide_data.foods_to_moderate %}
+      <div class="card" style="margin-top:2rem; background:rgba(239, 68, 68, 0.05); border-color:rgba(239, 68, 68, 0.2);">
+        <h4 style="font-size:1.1rem; color:#f87171; margin-bottom:0.6rem;">Items to Moderate or Minimize</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
+          {% for item in guide_data.foods_to_moderate %}
+            <span class="badge" style="background:rgba(239, 68, 68, 0.15); color:#fca5a5; font-size:0.82rem; padding:0.35rem 0.75rem;">
+              {{ item }}
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+  {% endif %}
+</div>
+{% endblock %}

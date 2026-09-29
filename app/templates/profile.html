@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}User Fitness Profile — FitBuddy{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 860px;">
+  <div class="page-header" style="text-align: center;">
+    <div class="section-tag">Step 1 &bull; Personalization</div>
+    <h1>Build Your <span class="gradient-text">Fitness Profile</span></h1>
+    <p style="margin: 0 auto;">
+      Tell FitBuddy about your body, goals, available equipment, and physical limitations so Google Gemini can construct your precision training and recovery protocol.
+    </p>
+  </div>
+
+  <div class="card">
+    <form action="/profile" method="POST" class="ai-trigger-form" id="fitness-profile-form">
+      {% if user %}
+        <input type="hidden" name="user_id" value="{{ user.id }}">
+      {% endif %}
+
+      <div class="form-grid">
+        <!-- Full Name -->
+        <div class="form-group">
+          <label for="name">Full Name *</label>
+          <input 
+            type="text" 
+            id="name" 
+            name="name" 
+            class="form-control" 
+            placeholder="e.g. Alex Morgan" 
+            value="{{ user.name if user else '' }}" 
+            required 
+            minlength="2"
+          >
+          <span class="input-hint">Used to personalize your coaching plan.</span>
+        </div>
+
+        <!-- Age -->
+        <div class="form-group">
+          <label for="age">Age (Years) *</label>
+          <input 
+            type="number" 
+            id="age" 
+            name="age" 
+            class="form-control" 
+            placeholder="e.g. 28" 
+            min="14" 
+            max="100" 
+            value="{{ user.age if user else '28' }}" 
+            required
+          >
+          <span class="input-hint">Must be between 14 and 100 years.</span>
+        </div>
+
+        <!-- Gender -->
+        <div class="form-group">
+          <label for="gender">Gender Identity *</label>
+          <select id="gender" name="gender" class="form-control" required>
+            <option value="Female" {% if user and user.gender == 'Female' %}selected{% endif %}>Female</option>
+            <option value="Male" {% if user and user.gender == 'Male' %}selected{% elif not user %}selected{% endif %}>Male</option>
+            <option value="Non-Binary" {% if user and user.gender == 'Non-Binary' %}selected{% endif %}>Non-Binary</option>
+            <option value="Prefer not to say" {% if user and user.gender == 'Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+          </select>
+          <span class="input-hint">Helps calibrate metabolic estimates.</span>
+        </div>
+
+        <!-- Height & Weight in same row visually -->
+        <div class="form-group">
+          <label for="height">Height (cm) *</label>
+          <input 
+            type="number" 
+            id="height" 
+            name="height" 
+            step="0.5" 
+            class="form-control" 
+            placeholder="e.g. 175" 
+            min="50" 
+            max="260" 
+            value="{{ user.height if user else '175' }}" 
+            required
+          >
+          <span class="input-hint">E.g., 175 cm (5 ft 9 in ≈ 175 cm)</span>
+        </div>
+
+        <div class="form-group">
+          <label for="weight">Weight (kg) *</label>
+          <input 
+            type="number" 
+            id="weight" 
+            name="weight" 
+            step="0.1" 
+            class="form-control" 
+            placeholder="e.g. 72.5" 
+            min="25" 
+            max="350" 
+            value="{{ user.weight if user else '70.0' }}" 
+            required
+          >
+          <span class="input-hint">E.g., 70 kg (154 lbs ≈ 70 kg)</span>
+        </div>
+
+        <!-- Fitness Goal -->
+        <div class="form-group">
+          <label for="fitness_goal">Primary Fitness Goal *</label>
+          <select id="fitness_goal" name="fitness_goal" class="form-control" required>
+            <option value="Weight Management" {% if user and user.fitness_goal == 'Weight Management' %}selected{% endif %}>Weight Management / Fat Loss</option>
+            <option value="Muscle Building" {% if user and user.fitness_goal == 'Muscle Building' %}selected{% elif not user %}selected{% endif %}>Muscle Building (Hypertrophy)</option>
+            <option value="Strength" {% if user and user.fitness_goal == 'Strength' %}selected{% endif %}>Strength & Power</option>
+            <option value="Endurance" {% if user and user.fitness_goal == 'Endurance' %}selected{% endif %}>Cardiovascular Endurance</option>
+            <option value="General Fitness" {% if user and user.fitness_goal == 'General Fitness' %}selected{% endif %}>General Fitness & Longevity</option>
+            <option value="Flexibility" {% if user and user.fitness_goal == 'Flexibility' %}selected{% endif %}>Flexibility & Mobility</option>
+          </select>
+          <span class="input-hint">Tailors volume, intensity, and nutrition.</span>
+        </div>
+
+        <!-- Fitness Level -->
+        <div class="form-group">
+          <label for="fitness_level">Current Fitness Level *</label>
+          <select id="fitness_level" name="fitness_level" class="form-control" required>
+            <option value="Beginner" {% if user and user.fitness_level == 'Beginner' %}selected{% endif %}>Beginner (0 - 6 months experience)</option>
+            <option value="Intermediate" {% if user and user.fitness_level == 'Intermediate' %}selected{% elif not user %}selected{% endif %}>Intermediate (6 months - 2 years)</option>
+            <option value="Advanced" {% if user and user.fitness_level == 'Advanced' %}selected{% endif %}>Advanced (2+ years consistent training)</option>
+          </select>
+        </div>
+
+        <!-- Workout Intensity -->
+        <div class="form-group">
+          <label for="workout_intensity">Target Workout Intensity *</label>
+          <select id="workout_intensity" name="workout_intensity" class="form-control" required>
+            <option value="Low" {% if user and user.workout_intensity == 'Low' %}selected{% endif %}>Low (Gentle, low-impact, restorative)</option>
+            <option value="Moderate" {% if user and user.workout_intensity == 'Moderate' %}selected{% elif not user %}selected{% endif %}>Moderate (Steady challenge, solid burn)</option>
+            <option value="High" {% if user and user.workout_intensity == 'High' %}selected{% endif %}>High (Challenging, higher volume/intensity)</option>
+          </select>
+        </div>
+
+        <!-- Workout Duration -->
+        <div class="form-group">
+          <label for="workout_duration">Workout Duration (Minutes) *</label>
+          <select id="workout_duration" name="workout_duration" class="form-control" required>
+            <option value="25" {% if user and user.workout_duration == 25 %}selected{% endif %}>25 Minutes (Express / High-efficiency)</option>
+            <option value="35" {% if user and user.workout_duration == 35 %}selected{% endif %}>35 Minutes</option>
+            <option value="45" {% if user and user.workout_duration == 45 %}selected{% elif not user %}selected{% endif %}>45 Minutes (Optimal standard)</option>
+            <option value="60" {% if user and user.workout_duration == 60 %}selected{% endif %}>60 Minutes</option>
+            <option value="75" {% if user and user.workout_duration == 75 %}selected{% endif %}>75 Minutes</option>
+          </select>
+        </div>
+
+        <!-- Available Days -->
+        <div class="form-group">
+          <label for="available_days">Available Training Days Per Week *</label>
+          <select id="available_days" name="available_days" class="form-control" required>
+            <option value="2" {% if user and user.available_days == 2 %}selected{% endif %}>2 Days / Week</option>
+            <option value="3" {% if user and user.available_days == 3 %}selected{% endif %}>3 Days / Week</option>
+            <option value="4" {% if user and user.available_days == 4 %}selected{% elif not user %}selected{% endif %}>4 Days / Week (Recommended)</option>
+            <option value="5" {% if user and user.available_days == 5 %}selected{% endif %}>5 Days / Week</option>
+            <option value="6" {% if user and user.available_days == 6 %}selected{% endif %}>6 Days / Week</option>
+          </select>
+        </div>
+
+        <!-- Equipment Availability -->
+        <div class="form-group">
+          <label for="equipment">Equipment Availability *</label>
+          <select id="equipment" name="equipment" class="form-control" required>
+            <option value="Bodyweight Only (At Home)" {% if user and 'Bodyweight' in user.equipment %}selected{% endif %}>Bodyweight Only (At Home / No equipment)</option>
+            <option value="Dumbbells & Resistance Bands" {% if user and 'Dumbbells' in user.equipment %}selected{% elif not user %}selected{% endif %}>Dumbbells & Resistance Bands (Home Gym)</option>
+            <option value="Full Commercial Gym (Barbells, Cables, Machines)" {% if user and 'Commercial' in user.equipment %}selected{% endif %}>Full Commercial Gym (Barbells, Cables, Machines)</option>
+            <option value="Kettlebells & Pull-up Bar" {% if user and 'Kettlebells' in user.equipment %}selected{% endif %}>Kettlebells & Pull-up Bar</option>
+          </select>
+        </div>
+
+        <!-- Dietary Preference -->
+        <div class="form-group">
+          <label for="dietary_preference">Dietary Preference *</label>
+          <select id="dietary_preference" name="dietary_preference" class="form-control" required>
+            <option value="Omnivore" {% if user and user.dietary_preference == 'Omnivore' %}selected{% elif not user %}selected{% endif %}>Omnivore (Everything)</option>
+            <option value="Vegetarian" {% if user and user.dietary_preference == 'Vegetarian' %}selected{% endif %}>Vegetarian</option>
+            <option value="Vegan" {% if user and user.dietary_preference == 'Vegan' %}selected{% endif %}>Vegan / Plant-Based</option>
+            <option value="Pescatarian" {% if user and user.dietary_preference == 'Pescatarian' %}selected{% endif %}>Pescatarian</option>
+            <option value="Keto" {% if user and user.dietary_preference == 'Keto' %}selected{% endif %}>Ketogenic / Low-Carb</option>
+            <option value="Paleo" {% if user and user.dietary_preference == 'Paleo' %}selected{% endif %}>Paleo / Whole Foods</option>
+          </select>
+        </div>
+
+        <!-- Preferred Workout Type -->
+        <div class="form-group full-width">
+          <label for="preferred_workout_type">Preferred Workout Type (Optional)</label>
+          <input 
+            type="text" 
+            id="preferred_workout_type" 
+            name="preferred_workout_type" 
+            class="form-control" 
+            placeholder="e.g. Strength Training, HIIT, Functional Hypertrophy, Calisthenics"
+            value="{{ user.preferred_workout_type if user else 'Strength & Functional Mobility' }}"
+          >
+        </div>
+
+        <!-- Injuries or Limitations -->
+        <div class="form-group full-width">
+          <label for="limitations">
+            Injuries or Physical Limitations (Handled Conservatively)
+          </label>
+          <textarea 
+            id="limitations" 
+            name="limitations" 
+            rows="3" 
+            class="form-control" 
+            placeholder="e.g. Lower back tightness, mild left knee discomfort during deep squats, rotator cuff sensitivity, or None"
+          >{{ user.limitations if user else 'None' }}</textarea>
+          <span class="input-hint" style="color:#fbbf24;">
+            🛡️ FitBuddy will eliminate high-risk compressive loads and substitute joint-friendly exercises for any noted limitations.
+          </span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2.5rem; flex-wrap:wrap;">
+        <button type="submit" name="generate_now" value="false" class="btn btn-secondary">
+          Save Profile Only
+        </button>
+        <button type="submit" name="generate_now" value="true" class="btn btn-primary btn-lg" id="btn-save-generate">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          Save & Generate 7-Day Plan with AI
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

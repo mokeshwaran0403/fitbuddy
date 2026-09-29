@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Adapt Plan with AI Feedback — FitBuddy{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 860px;">
+
+  {% if not user or not workout_plan %}
+    <div class="card" style="text-align:center; padding: 4rem 1.5rem; margin: 2rem auto;">
+      <h2 style="font-size:2rem; margin-bottom:0.8rem;">No Active Plan Found</h2>
+      <p style="color:var(--text-muted); margin-bottom:2rem;">
+        You need an active 7-day workout plan before you can submit feedback to adapt it.
+      </p>
+      <a href="/profile" class="btn btn-primary btn-lg">Set Up Profile & Plan &rarr;</a>
+    </div>
+
+  {% else %}
+    <div class="page-header" style="text-align: center;">
+      <div class="section-tag">Continuous Evolution</div>
+      <h1>Adapt Your <span class="gradient-text">Workout Plan</span></h1>
+      <p style="margin: 0 auto;">
+        Tell Google Gemini how your sessions felt. FitBuddy modifies volume, rest periods, exercise selection, or constraints while saving your history as a new Version.
+      </p>
+    </div>
+
+    <!-- Active Plan Context Card -->
+    <div class="card" style="margin-bottom: 2rem; background:rgba(17, 24, 39, 0.7); border-color:rgba(16, 185, 129, 0.25);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <span class="plan-version-badge">Version {{ workout_plan.version }} Active</span>
+          <h3 style="font-size:1.3rem; margin:0.3rem 0;">{{ user.name }} &bull; {{ user.fitness_goal }}</h3>
+          <p style="font-size:0.85rem; color:var(--text-muted);">
+            {{ user.available_days }} Days/Week &bull; {{ user.equipment }} &bull; Limitation: {{ user.limitations }}
+          </p>
+        </div>
+        <a href="/workout?plan_id={{ workout_plan.id }}" class="btn btn-secondary btn-sm">
+          Review Current Plan
+        </a>
+      </div>
+    </div>
+
+    <!-- Feedback Submission Card -->
+    <div class="card">
+      <form action="/feedback" method="POST" class="ai-trigger-form" id="plan-feedback-form">
+        <input type="hidden" name="user_id" value="{{ user.id }}">
+        <input type="hidden" name="workout_plan_id" value="{{ workout_plan.id }}">
+
+        <div class="form-group">
+          <label for="feedback-textarea">
+            How was your training experience? What needs adjusting? *
+          </label>
+          <textarea 
+            id="feedback-textarea" 
+            name="feedback_text" 
+            rows="4" 
+            class="form-control" 
+            placeholder="e.g. Day 3 was too difficult to finish; reduce the total sets or increase rest periods. Also I have less time available on weekdays."
+            required 
+            minlength="3"
+          ></textarea>
+          <span class="input-hint">Be specific about exercises, pacing, joint feelings, or time availability.</span>
+        </div>
+
+        <!-- Quick Feedback Chips -->
+        <div style="margin-top:1rem;">
+          <label style="font-size:0.82rem; color:var(--text-muted);">Quick-Select Common Feedback:</label>
+          <div class="chips-container">
+            <button type="button" class="chip-btn feedback-chip" data-text="The workout was too difficult; please reduce the sets and extend rest.">
+              📉 Too difficult (reduce volume)
+            </button>
+            <button type="button" class="chip-btn feedback-chip" data-text="The workout was too easy; increase the intensity and challenge.">
+              🔥 Too easy (increase intensity)
+            </button>
+            <button type="button" class="chip-btn feedback-chip" data-text="I had difficulty completing Day 3 exercises.">
+              ⚠️ Struggled on Day 3
+            </button>
+            <button type="button" class="chip-btn feedback-chip" data-text="I have less time available this week; condense workouts into 30 minutes.">
+              ⏱️ Less time available (30m max)
+            </button>
+            <button type="button" class="chip-btn feedback-chip" data-text="I want more bodyweight movements and less heavy equipment.">
+              🤸 More bodyweight focus
+            </button>
+            <button type="button" class="chip-btn feedback-chip" data-text="My knee is feeling sore; substitute squats with joint-friendly glute bridges.">
+              🛡️ Knee soreness (modify leg movements)
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="display:flex; justify-content:flex-end; margin-top:2rem;">
+          <button type="submit" class="btn btn-primary btn-lg" id="btn-submit-feedback">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            Adapt Plan to Version {{ workout_plan.version + 1 }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Previous Feedback History on this Plan -->
+    {% if feedbacks %}
+      <div style="margin-top:3rem;">
+        <h3 style="font-size:1.3rem; margin-bottom:1rem; color:#fff;">Previous Feedback on This Program</h3>
+        <div style="display:flex; flex-direction:column; gap:0.9rem;">
+          {% for fb in feedbacks %}
+            <div class="card" style="padding:1rem 1.25rem; background:rgba(17, 24, 39, 0.5);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem;">
+                <span style="font-weight:600; font-size:0.85rem; color:var(--primary);">Feedback Recorded</span>
+                <span style="font-size:0.75rem; color:var(--text-dim);">{{ fb.created_at.strftime('%b %d, %Y - %H:%M') }}</span>
+              </div>
+              <p style="font-size:0.92rem; color:#e5e7eb;">"{{ fb.feedback_text }}"</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+  {% endif %}
+</div>
+{% endblock %}

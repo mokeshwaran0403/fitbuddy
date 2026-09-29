@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FitBuddy - Next-generation Generative AI Fitness & Workout Planning Platform powered by Google Gemini. Tailored 7-day workouts, nutrition, recovery, and smart feedback adaptation.">
+  <meta name="keywords" content="fitness AI, workout planner, Gemini AI fitness, bodybuilding, weight loss, personalized workouts, nutrition tips">
+  <meta name="author" content="FitBuddy AI">
+  
+  <title>{% block title %}FitBuddy — Generative AI Fitness Planner{% endblock %}</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="/static/css/style.css">
+
+  <!-- Favicon / Brand Icon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+
+  <!-- Health & Safety Disclaimer Banner -->
+  <aside class="disclaimer-banner" role="complementary" aria-label="Health Disclaimer">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+    <span>
+      <strong>Fitness Safety Notice:</strong> FitBuddy provides AI-generated fitness & nutrition guidance for educational purposes only. Always consult a licensed physician before starting any training routine.
+    </span>
+  </aside>
+
+  <!-- Navigation Bar -->
+  <header>
+    <nav class="navbar" aria-label="Main Navigation">
+      <div class="container nav-container">
+        <a href="/" class="brand-logo" id="brand-logo-link">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+            <line x1="6" y1="1" x2="6" y2="4"></line>
+            <line x1="10" y1="1" x2="10" y2="4"></line>
+            <line x1="14" y1="1" x2="14" y2="4"></line>
+          </svg>
+          <span>Fit<span style="color:var(--primary);">Buddy</span></span>
+          <span class="brand-badge">Gemini AI</span>
+        </a>
+
+        <!-- Desktop Links -->
+        <ul class="nav-links" id="nav-links">
+          <li><a href="/" class="nav-link {% if active_tab == 'home' %}active{% endif %}" id="nav-home">Home</a></li>
+          <li><a href="/profile" class="nav-link {% if active_tab == 'profile' %}active{% endif %}" id="nav-profile">Profile</a></li>
+          <li><a href="/workout" class="nav-link {% if active_tab == 'workout' %}active{% endif %}" id="nav-workout">Workout Plan</a></li>
+          <li><a href="/nutrition" class="nav-link {% if active_tab == 'nutrition' %}active{% endif %}" id="nav-nutrition">Nutrition & Recovery</a></li>
+          <li><a href="/feedback" class="nav-link {% if active_tab == 'feedback' %}active{% endif %}" id="nav-feedback">AI Adaptation</a></li>
+          <li><a href="/history" class="nav-link {% if active_tab == 'history' %}active{% endif %}" id="nav-history">History</a></li>
+          <li><a href="/admin" class="nav-link {% if active_tab == 'admin' %}active{% endif %}" id="nav-admin">Admin</a></li>
+        </ul>
+
+        <!-- Right Side: User Status Indicator & Mobile Button -->
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          {% if user %}
+            <a href="/profile" class="nav-user-pill" title="Active User Profile" id="user-status-pill">
+              <span class="user-avatar-dot"></span>
+              <span style="font-weight:600;">{{ user.name.split(' ')[0] }}</span>
+              <span style="color:var(--text-dim); font-size:0.75rem;">({{ user.fitness_goal }})</span>
+            </a>
+          {% else %}
+            <a href="/profile" class="btn btn-primary btn-sm" id="nav-cta-create">Get Started</a>
+          {% endif %}
+
+          <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Flash Messages & Global Alerts -->
+  <div class="container">
+    {% if success %}
+      <div class="alert-box alert-success" role="alert">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>{{ success }}</span>
+        </div>
+        <button class="alert-close" onclick="this.parentElement.remove()" aria-label="Close alert">&times;</button>
+      </div>
+    {% endif %}
+
+    {% if error %}
+      <div class="alert-box alert-error" role="alert">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{{ error }}</span>
+        </div>
+        <button class="alert-close" onclick="this.parentElement.remove()" aria-label="Close alert">&times;</button>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Main View Area -->
+  <main class="main-content" id="main-content">
+    {% block content %}
+      {% if error_title %}
+        <div class="container" style="text-align:center; padding: 4rem 1rem;">
+          <h1 class="gradient-text" style="font-size:3rem; margin-bottom:1rem;">{{ error_title }}</h1>
+          <p style="color:var(--text-muted); font-size:1.1rem; max-width:550px; margin:0 auto 2rem auto;">{{ error_message }}</p>
+          <a href="/" class="btn btn-primary">Return to FitBuddy Home</a>
+        </div>
+      {% endif %}
+    {% endblock %}
+  </main>
+
+  <!-- AI Processing Overlay Modal -->
+  <div class="ai-loader-overlay" id="ai-loader-overlay" role="dialog" aria-modal="true">
+    <div class="spinner-glow"></div>
+    <h3 style="font-size:1.6rem; color:#fff; margin-bottom:0.4rem;">Google Gemini AI is Working</h3>
+    <p style="color:var(--primary); font-weight:600; font-size:1.05rem;" id="loader-rotating-tip">
+      Synthesizing your personalized fitness architecture...
+    </p>
+    <p class="loader-tip">
+      FitBuddy evaluates your goal, intensity, available equipment, and physical limitations to build a science-backed, injury-conscious program.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div>
+          <div class="brand-logo" style="font-size:1.25rem; margin-bottom:0.4rem;">
+            <span>Fit<span style="color:var(--primary);">Buddy</span></span>
+            <span class="brand-badge">Gemini AI</span>
+          </div>
+          <p style="color:var(--text-muted); font-size:0.85rem; max-width:380px;">
+            Intelligent, generative fitness planning and wellness guidance powered by cutting-edge AI models.
+          </p>
+        </div>
+
+        <div class="footer-links">
+          <a href="/profile" class="nav-link">Profile</a>
+          <a href="/workout" class="nav-link">Workout Plan</a>
+          <a href="/nutrition" class="nav-link">Nutrition</a>
+          <a href="/feedback" class="nav-link">Adapt Plan</a>
+          <a href="/docs" target="_blank" class="nav-link">FastAPI Docs</a>
+          <a href="/admin" class="nav-link">Admin</a>
+        </div>
+      </div>
+
+      <div class="footer-disclaimer">
+        <strong>Important Medical & Health Disclaimer:</strong> FitBuddy is an automated software tool intended strictly for educational, informational, and general fitness planning purposes. It does not provide medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified healthcare provider before embarking on any fitness regimen or nutritional change, especially if you have pre-existing injuries, cardiovascular issues, joint pain, or are pregnant. Never ignore professional medical advice because of something you have read on FitBuddy.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Core JavaScript -->
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

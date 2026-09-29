@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Your 7-Day Workout Plan — FitBuddy{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  {% if not user %}
+    <!-- No User Profile Found State -->
+    <div class="card" style="text-align:center; padding: 4rem 1.5rem; max-width:680px; margin: 2rem auto;">
+      <div class="feature-icon-wrapper" style="margin: 0 auto 1.5rem auto;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+      <h2 style="font-size:2rem; margin-bottom:0.8rem;">Profile Required</h2>
+      <p style="color:var(--text-muted); margin-bottom:2rem;">
+        Before generating your tailored 7-day workout plan, FitBuddy needs to know your fitness goal, experience level, equipment, and any injuries.
+      </p>
+      <a href="/profile" class="btn btn-primary btn-lg" id="btn-create-profile-first">
+        Set Up Your Fitness Profile &rarr;
+      </a>
+    </div>
+
+  {% elif not workout_plan %}
+    <!-- User Exists But Has Not Generated Plan Yet State -->
+    <div class="card" style="text-align:center; padding: 4rem 1.5rem; max-width:720px; margin: 2rem auto;">
+      <div class="section-tag">Welcome, {{ user.name }}</div>
+      <h2 style="font-size:2.2rem; margin-bottom:0.8rem;">Ready to Generate Your 7-Day Plan?</h2>
+      <p style="color:var(--text-muted); margin-bottom:1.5rem;">
+        We have your target goal set as <strong>{{ user.fitness_goal }}</strong> with <strong>{{ user.available_days }} training days/week</strong> and <strong>{{ user.equipment }}</strong>.
+      </p>
+      <form action="/workout/generate" method="POST" class="ai-trigger-form">
+        <input type="hidden" name="user_id" value="{{ user.id }}">
+        <button type="submit" class="btn btn-primary btn-lg" id="btn-generate-workout-first">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          Generate My Plan with Gemini AI
+        </button>
+      </form>
+    </div>
+
+  {% else %}
+    <!-- Plan Controls & Meta Bar -->
+    <div class="workout-controls">
+      <div class="plan-meta-info">
+        <div>
+          <span class="section-tag" style="margin-bottom:0.2rem;">{{ plan_data.target_goal or user.fitness_goal }}</span>
+          <h1 class="plan-title" style="font-size:1.8rem; margin:0.2rem 0;">{{ plan_data.program_title or "7-Day Fitness Protocol" }}</h1>
+          <p style="color:var(--text-muted); font-size:0.88rem; max-width:650px;">
+            {{ plan_data.overview }}
+          </p>
+        </div>
+      </div>
+
+      <div class="workout-actions-row">
+        <!-- Version Switcher -->
+        {% if versions and versions|length > 1 %}
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <label for="version-select" style="font-size:0.8rem; color:var(--text-muted);">Version:</label>
+            <select 
+              id="version-select" 
+              class="form-control" 
+              style="padding:0.4rem 1.8rem 0.4rem 0.8rem; font-size:0.85rem;"
+              onchange="window.location.href='/workout?plan_id={{ workout_plan.id }}&version_id=' + this.value"
+            >
+              {% for ver in versions %}
+                <option value="{{ ver.id }}" {% if selected_version == ver.version %}selected{% endif %}>
+                  v{{ ver.version }} ({{ ver.created_at.strftime('%b %d') }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        {% else %}
+          <span class="plan-version-badge">Version {{ selected_version or workout_plan.version }}</span>
+        {% endif %}
+
+        <a href="/feedback?plan_id={{ workout_plan.id }}" class="btn btn-secondary btn-sm" id="btn-feedback-plan" title="Refine plan with AI feedback">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Adapt Plan
+        </a>
+
+        <button class="btn btn-secondary btn-sm" id="copy-plan-btn" title="Copy routine to clipboard">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy
+        </button>
+
+        <button class="btn btn-secondary btn-sm" id="print-plan-btn" title="Print plan">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          Print / PDF
+        </button>
+
+        <form action="/workout/generate" method="POST" class="ai-trigger-form" style="display:inline;">
+          <input type="hidden" name="user_id" value="{{ user.id }}">
+          <button type="submit" class="btn btn-primary btn-sm" id="btn-regenerate-plan">
+            Regenerate
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 7-Day Workout Grid -->
+    <div class="days-grid">
+      {% if plan_data and plan_data.schedule %}
+        {% for day in plan_data.schedule %}
+          <div class="day-card" id="day-card-{{ loop.index }}">
+            <!-- Day Card Header -->
+            <div class="day-header">
+              <div class="day-title-wrap">
+                <h3>{{ day.day }}</h3>
+                <span class="day-focus-badge">{{ day.focus }}</span>
+              </div>
+              <span class="badge day-progress-badge">0% Done</span>
+            </div>
+
+            <!-- Warm-up Routine -->
+            {% if day.warmup %}
+              <div class="routine-box">
+                <div class="routine-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  Warm-Up (5–8 mins)
+                </div>
+                <ul class="routine-list">
+                  {% if day.warmup is string %}
+                    <li>{{ day.warmup }}</li>
+                  {% else %}
+                    {% for w in day.warmup %}
+                      <li>{{ w }}</li>
+                    {% endfor %}
+                  {% endif %}
+                </ul>
+              </div>
+            {% endif %}
+
+            <!-- Exercises -->
+            <div class="exercise-list">
+              {% if day.exercises %}
+                {% for ex in day.exercises %}
+                  <div class="exercise-item" id="exercise-{{ loop.index0 }}-day-{{ loop.index }}">
+                    <div class="exercise-top">
+                      <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <input 
+                          type="checkbox" 
+                          class="exercise-checkbox" 
+                          id="check-{{ loop.index0 }}-{{ day.day|replace(' ', '-') }}"
+                          style="accent-color:var(--primary); width:16px; height:16px; cursor:pointer;"
+                        >
+                        <label for="check-{{ loop.index0 }}-{{ day.day|replace(' ', '-') }}" class="exercise-name" style="cursor:pointer;">
+                          {{ ex.name }}
+                        </label>
+                      </div>
+                      <div class="exercise-meta-badges">
+                        <span class="badge badge-primary">{{ ex.sets }} sets</span>
+                        <span class="badge badge-secondary">{{ ex.repetitions }} reps</span>
+                        <span 
+                          class="badge badge-rest rest-timer-trigger" 
+                          data-seconds="{{ ex.rest_seconds|default(60) }}" 
+                          data-exercise="{{ ex.name }}"
+                          title="Click to start rest timer countdown"
+                          style="cursor:pointer;"
+                        >
+                          ⏱️ {{ ex.rest_seconds|default(60) }}s rest
+                        </span>
+                      </div>
+                    </div>
+                    {% if ex.notes %}
+                      <div class="exercise-notes">{{ ex.notes }}</div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p style="color:var(--text-muted); font-size:0.9rem; font-style:italic;">
+                  Scheduled Active Rest / Recovery Day.
+                </p>
+              {% endif %}
+            </div>
+
+            <!-- Cool-down Routine -->
+            {% if day.cooldown %}
+              <div class="routine-box" style="margin-top:0.5rem;">
+                <div class="routine-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  Cool-Down & Mobility (5 mins)
+                </div>
+                <ul class="routine-list">
+                  {% if day.cooldown is string %}
+                    <li>{{ day.cooldown }}</li>
+                  {% else %}
+                    {% for c in day.cooldown %}
+                      <li>{{ c }}</li>
+                    {% endfor %}
+                  {% endif %}
+                </ul>
+              </div>
+            {% endif %}
+
+            <!-- Recovery Guidance -->
+            {% if day.recovery %}
+              <div class="day-recovery-box">
+                <strong>Recovery Note:</strong> {{ day.recovery }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Safety & Limitations Advice -->
+    {% if plan_data.safety_notes %}
+      <div class="card" style="margin-top:2.5rem; background:rgba(17, 24, 39, 0.7); border-color:rgba(16, 185, 129, 0.2);">
+        <h4 style="font-size:1.15rem; color:var(--primary); margin-bottom:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Conservative Program Safety Notes
+        </h4>
+        <ul style="padding-left:1.5rem; color:var(--text-muted); font-size:0.9rem; display:flex; flex-direction:column; gap:0.4rem;">
+          {% for note in plan_data.safety_notes %}
+            <li>{{ note }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+  {% endif %}
+</div>
+{% endblock %}

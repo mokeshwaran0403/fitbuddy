@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard & Telemetry — FitBuddy{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <div class="section-tag">System Administration</div>
+      <h1>FitBuddy <span class="gradient-text">Admin Dashboard</span></h1>
+      <p>Inspect system analytics, user profiles, workout plans, and feedback loop logs.</p>
+    </div>
+
+    <!-- Quick Demo Data Seeder Button -->
+    <div>
+      <form action="/admin/seed-demo" method="POST" style="display:inline;">
+        <button type="submit" class="btn btn-primary" id="btn-seed-demo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Seed Realistic Demo Profiles
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Metric Statistics Cards -->
+  <div class="hero-stats-grid" style="margin-bottom: 2.5rem; max-width:none;">
+    <div class="stat-box">
+      <div class="stat-value">{{ total_users }}</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" style="color:var(--secondary);">{{ total_plans }}</div>
+      <div class="stat-label">Active Workout Plans</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" style="color:var(--accent-purple);">{{ total_versions }}</div>
+      <div class="stat-label">Plan Versions Archived</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" style="color:#fbbf24;">{{ total_feedback }}</div>
+      <div class="stat-label">Feedback Submissions</div>
+    </div>
+  </div>
+
+  <!-- Plan Inspector Modal / Section if Requested -->
+  {% if inspected_plan and inspected_plan_data %}
+    <div class="card" style="margin-bottom:2.5rem; border-color:var(--primary); background:rgba(16, 185, 129, 0.05);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <div>
+          <span class="section-tag">Inspecting Plan #{{ inspected_plan.id }}</span>
+          <h3 style="font-size:1.4rem;">{{ inspected_plan_data.program_title or "Workout Program" }}</h3>
+          <p style="font-size:0.85rem; color:var(--text-muted);">
+            User ID #{{ inspected_plan.user_id }} &bull; Version {{ inspected_plan.version }} &bull; Goal: {{ inspected_plan_data.target_goal }}
+          </p>
+        </div>
+        <a href="/admin" class="btn btn-secondary btn-sm">Close Inspector</a>
+      </div>
+      <p style="font-size:0.92rem; color:#e5e7eb; margin-bottom:1.5rem;">
+        <strong>Overview:</strong> {{ inspected_plan_data.overview }}
+      </p>
+
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Focus</th>
+              <th>Exercises Count</th>
+              <th>Recovery Protocol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for day in inspected_plan_data.schedule %}
+              <tr>
+                <td><strong>{{ day.day }}</strong></td>
+                <td><span class="day-focus-badge">{{ day.focus }}</span></td>
+                <td>{{ day.exercises|length if day.exercises else 0 }} exercises</td>
+                <td style="font-size:0.85rem; color:var(--text-muted);">{{ day.recovery }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Goal Distribution & System Health -->
+  <div class="nutrition-details-grid" style="margin-bottom: 2.5rem;">
+    <!-- Goals Distribution -->
+    <div class="nutrition-section-card">
+      <h3>Fitness Goals Distribution</h3>
+      {% if goals_data %}
+        <div style="display:flex; flex-direction:column; gap:0.75rem;">
+          {% for goal, count in goals_data.items() %}
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.92rem;">
+              <span>{{ goal }}</span>
+              <span class="badge badge-primary">{{ count }} users</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p style="color:var(--text-muted); font-size:0.9rem;">No goals recorded yet.</p>
+      {% endif %}
+    </div>
+
+    <!-- AI Engine Configuration -->
+    <div class="nutrition-section-card">
+      <h3>Gemini Engine Configuration</h3>
+      <div style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.9rem;">
+        <div><strong>Workout Engine:</strong> <code style="color:var(--primary);">gemini-1.5-pro</code></div>
+        <div><strong>Fast Engine:</strong> <code style="color:var(--secondary);">gemini-1.5-flash</code></div>
+        <div><strong>Database Engine:</strong> SQLite 3 via SQLAlchemy ORM</div>
+        <div><strong>Output Validation:</strong> Pydantic v2 (Strict Schema)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="card" style="margin-bottom: 2.5rem;">
+    <h3 style="font-size:1.3rem; margin-bottom:1rem;">Registered User Profiles</h3>
+    {% if users %}
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Age/Gender</th>
+              <th>Goal</th>
+              <th>Level / Intensity</th>
+              <th>Days/Wk</th>
+              <th>Equipment</th>
+              <th>Limitations</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+              <tr>
+                <td>#{{ u.id }}</td>
+                <td><strong>{{ u.name }}</strong></td>
+                <td>{{ u.age }} / {{ u.gender }}</td>
+                <td><span class="badge badge-secondary">{{ u.fitness_goal }}</span></td>
+                <td>{{ u.fitness_level }} ({{ u.workout_intensity }})</td>
+                <td>{{ u.available_days }}d ({{ u.workout_duration }}m)</td>
+                <td>{{ u.equipment }}</td>
+                <td style="color:#fbbf24; font-size:0.82rem;">{{ u.limitations }}</td>
+                <td>
+                  <a href="/workout?user_id={{ u.id }}" class="btn btn-secondary btn-sm" title="View Workout Plan">
+                    View
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p style="color:var(--text-muted);">No users found. Click 'Seed Realistic Demo Profiles' above to populate sample users.</p>
+    {% endif %}
+  </div>
+
+  <!-- Recent Workout Plans Table -->
+  <div class="card" style="margin-bottom: 2.5rem;">
+    <h3 style="font-size:1.3rem; margin-bottom:1rem;">Generated Workout Plans</h3>
+    {% if workout_plans %}
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Plan ID</th>
+              <th>User</th>
+              <th>Version</th>
+              <th>Versions Count</th>
+              <th>Created</th>
+              <th>Inspect</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for plan in workout_plans %}
+              <tr>
+                <td>#{{ plan.id }}</td>
+                <td><strong>{{ plan.user.name if plan.user else 'Unknown' }}</strong></td>
+                <td><span class="badge badge-primary">v{{ plan.version }}</span></td>
+                <td>{{ plan.versions|length }} archived</td>
+                <td>{{ plan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                  <a href="/admin?inspect_plan_id={{ plan.id }}" class="btn btn-secondary btn-sm">
+                    Inspect
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p style="color:var(--text-muted);">No workout plans generated yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Recent Feedback Table -->
+  <div class="card">
+    <h3 style="font-size:1.3rem; margin-bottom:1rem;">Recent User Feedback Logs</h3>
+    {% if feedbacks %}
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Plan ID</th>
+              <th>Feedback Message</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fb in feedbacks %}
+              <tr>
+                <td>#{{ fb.id }}</td>
+                <td><strong>{{ fb.user.name if fb.user else 'User' }}</strong></td>
+                <td>#{{ fb.workout_plan_id }}</td>
+                <td>"{{ fb.feedback_text }}"</td>
+                <td>{{ fb.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p style="color:var(--text-muted);">No feedback submissions recorded yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
